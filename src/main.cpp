@@ -1,7 +1,38 @@
-#include "curl/curl.h"
-#include "curl/easy.h"
+#include <curl/curl.h>
 #include <fstream>
 #include <iostream>
+#include <list>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+struct Source
+{
+  std::string name;
+  std::string lang;
+  std::string id;
+  std::string baseUrl;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE (Source, name, lang, id, baseUrl)
+struct RepoJson
+{
+  std::string name;
+  std::string lang;
+  int nsfw;
+  std::vector<Source> sources;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE (RepoJson, name, lang, nsfw, sources)
+
+json
+read_json (std::string json_file_path)
+{
+  std::ifstream f (json_file_path);
+  json data = json::parse (f);
+  return data;
+}
+void
+callRepoUrl (std::string url)
+{
+  std::cout << url << std::endl;
+}
 size_t
 write_data (void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
@@ -48,6 +79,15 @@ main (int argc, char *argv[])
             }
           domains_file << response;
           domains_file.close ();
+          json data = read_json (file_name);
+          auto repo_json = data.template get<std::vector<RepoJson>> ();
+          for (auto repo : repo_json)
+            {
+              if (repo.lang == "es")
+                {
+                  callRepoUrl (repo.sources[0].baseUrl);
+                }
+            }
           curl_easy_cleanup (curl);
         }
     }
